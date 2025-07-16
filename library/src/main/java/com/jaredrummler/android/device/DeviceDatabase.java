@@ -93,40 +93,49 @@ public class DeviceDatabase extends SQLiteOpenHelper {
    */
   @SuppressWarnings("WeakerAccess")
   public DeviceInfo queryToDevice(@Nullable String codename, @Nullable String model) {
-    SQLiteDatabase database = getReadableDatabase();
-
-    String[] columns = new String[] { COLUMN_NAME, COLUMN_CODENAME, COLUMN_MODEL };
-    String selection;
-    String[] selectionArgs;
-
+    android.util.Log.d("DeviceDatabase", "queryToDevice: codename=" + codename + ", model=" + model);
     if (!TextUtils.isEmpty(codename) && !TextUtils.isEmpty(model)) {
-      selection = COLUMN_CODENAME + " LIKE ? OR " + COLUMN_MODEL + " LIKE ?";
-      selectionArgs = new String[] { codename, model };
+      // 1. Try AND query
+      DeviceInfo info = queryToDeviceBySelectionArgs(COLUMN_CODENAME + " = ? AND " + COLUMN_MODEL + " = ?", new String[] { codename, model });
+      if (info != null) return info;
+      // 2. Try model only
+      info = queryToDeviceBySelectionArgs(COLUMN_MODEL + " = ?", new String[] { model });
+      if (info != null) return info;
+      // 3. Try codename only
+      info = queryToDeviceBySelectionArgs(COLUMN_CODENAME + " = ?", new String[] { codename });
+      if (info != null) return info;
+      android.util.Log.d("DeviceDatabase", "queryToDevice: no result found");
+      return null;
+    } else if (!TextUtils.isEmpty(model)) {
+      return queryToDeviceBySelectionArgs(COLUMN_MODEL + " = ?", new String[] { model });
     } else if (!TextUtils.isEmpty(codename)) {
-      selection = COLUMN_CODENAME + " LIKE ?";
-      selectionArgs = new String[] { codename };
-    } else if (TextUtils.isEmpty(model)) {
-      selection = COLUMN_MODEL + " LIKE ?";
-      selectionArgs = new String[] { model };
+      return queryToDeviceBySelectionArgs(COLUMN_CODENAME + " = ?", new String[] { codename });
     } else {
+      android.util.Log.d("DeviceDatabase", "queryToDevice: both codename and model are empty");
       return null;
     }
+  }
 
-    Cursor cursor =
-        database.query(TABLE_DEVICES, columns, selection, selectionArgs, null, null, null);
-
+  /**
+   * Query the device info by custom selection and arguments.
+   *
+   * @param selection the SQL WHERE clause (without 'WHERE')
+   * @param selectionArgs the arguments for the WHERE clause
+   * @return The {@link DeviceInfo} if found, otherwise null.
+   */
+  private DeviceInfo queryToDeviceBySelectionArgs(String selection, String[] selectionArgs) {
+    SQLiteDatabase database = getReadableDatabase();
+    String[] columns = new String[] { COLUMN_NAME, COLUMN_CODENAME, COLUMN_MODEL };
+    Cursor cursor = database.query(TABLE_DEVICES, columns, selection, selectionArgs, null, null, null);
     DeviceInfo deviceInfo = null;
-
     if (cursor.moveToFirst()) {
       String name = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_NAME));
-      codename = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_CODENAME));
-      model = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_MODEL));
+      String codename = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_CODENAME));
+      String model = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_MODEL));
       deviceInfo = new DeviceInfo(name, codename, model);
     }
-
     close(cursor);
     close(database);
-
     return deviceInfo;
   }
 

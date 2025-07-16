@@ -23,5 +23,3 @@ android {
 dependencies {
   implementation deps.androidx.annotations
 }
-
-apply from: rootProject.file('scripts/publish-module.gradle')

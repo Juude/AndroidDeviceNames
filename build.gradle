@@ -69,5 +69,5 @@ allprojects {
   }
 }
 
-apply plugin: 'io.github.gradle-nexus.publish-plugin'
-apply from: rootProject.file('scripts/publish-root.gradle')
+// apply plugin: 'io.github.gradle-nexus.publish-plugin'
+// apply from: rootProject.file('scripts/publish-root.gradle')

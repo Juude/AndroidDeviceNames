@@ -178,19 +178,22 @@ public class DeviceName {
    */
   @WorkerThread
   public static DeviceInfo getDeviceInfo(Context context, String codename, String model) {
+    android.util.Log.d("DeviceName", "getDeviceInfo: codename=" + codename + ", model=" + model);
     SharedPreferences prefs = context.getSharedPreferences(SHARED_PREF_NAME, Context.MODE_PRIVATE);
     String key = String.format("%s:%s", codename, model);
     String savedJson = prefs.getString(key, null);
     if (savedJson != null) {
       try {
+        android.util.Log.d("DeviceName", "getDeviceInfo: hit cache for key=" + key);
         return new DeviceInfo(new JSONObject(savedJson));
       } catch (JSONException e) {
-        e.printStackTrace();
+        android.util.Log.e("DeviceName", "getDeviceInfo: JSON parse error", e);
       }
     }
 
     try (DeviceDatabase database = new DeviceDatabase(context)) {
       DeviceInfo info = database.queryToDevice(codename, model);
+      android.util.Log.d("DeviceName", "getDeviceInfo: db result=" + (info == null ? "null" : info.getName()));
       if (info != null) {
         JSONObject json = new JSONObject();
         json.put("manufacturer", info.manufacturer);
@@ -204,13 +207,15 @@ public class DeviceName {
         return info;
       }
     } catch (Exception e) {
-      e.printStackTrace();
+      android.util.Log.e("DeviceName", "getDeviceInfo: db error", e);
     }
 
     if (codename.equals(Build.DEVICE) && Build.MODEL.equals(model)) {
+      android.util.Log.d("DeviceName", "getDeviceInfo: fallback to current device");
       return new DeviceInfo(Build.MANUFACTURER, codename, codename, model); // current device
     }
 
+    android.util.Log.d("DeviceName", "getDeviceInfo: unknown device, fallback");
     return new DeviceInfo(null, null, codename, model); // unknown device
   }
 
